@@ -1,25 +1,32 @@
 import React, { FC, useState } from "react";
 
-import { Song, Player, Library, Nav } from "./components";
+import {
+  Nav,
+  Song,
+  Player,
+  Library,
+} from "./components";
+import { songsData } from "./data";
 import { SkipDirection } from "./types";
-import data from "./data";
 
 import "./styles/app.scss";
 
 const App: FC = () => {
-  const [songs, setSongs] = useState(data());
+  const [songs] = useState(songsData);
   const [currentSong, setCurrentSong] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [libraryStatus, setLibraryStatus] = useState(false);
 
-  const skipTrack = async (direction: SkipDirection) => {
-    if (direction === SkipDirection.FW && currentSong < songs.length - 1) {
-      await setCurrentSong(currentSong + 1);
+  const skipTrack = (direction: SkipDirection) => {
+    const maxLimit = songs.length - 1;
+
+    if (direction === SkipDirection.FW && currentSong < maxLimit) {
+      setCurrentSong(currentSong + 1);
       return;
     }
 
-    if (currentSong > 0 && direction === SkipDirection.BW) {
-      await setCurrentSong(currentSong - 1);
+    if (direction === SkipDirection.BW && currentSong > 0) {
+      setCurrentSong(currentSong - 1);
     }
   };
 

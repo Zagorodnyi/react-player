@@ -1,4 +1,10 @@
-import React, { FC, useRef, useState, SyntheticEvent, useEffect } from "react";
+import React, {
+  FC,
+  useRef,
+  useState,
+  useEffect,
+  SyntheticEvent,
+} from "react";
 import {
   faPlay,
   faPause,
@@ -7,6 +13,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import { getTime } from "./utils";
 import { PlayerProps, SkipDirection } from "../types";
 
 export const Player: FC<PlayerProps> = ({
@@ -16,15 +23,12 @@ export const Player: FC<PlayerProps> = ({
   updatePlayState,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const fakeButonRef = useRef<HTMLButtonElement>(null);
+
   const [fisrtPlay, setFirstPlay] = useState(true);
   const [songinfo, setSonginfo] = useState({
-    currentTime: 0,
     duration: 0,
+    currentTime: 0,
   });
-
-  const getTime = (time: number) =>
-    Math.floor(time / 60) + ":" + ("0" + Math.floor(time % 60)).slice(-2);
 
   const onPlayHandler = () => {
     isPlaying ? audioRef.current?.pause() : audioRef.current?.play();
@@ -37,25 +41,24 @@ export const Player: FC<PlayerProps> = ({
     }
   };
 
+  const setInitialState = () => {
+    audioRef.current!.currentTime = 0;
+    updatePlayState(false);
+    setSonginfo((prev) => ({...prev, currentTime: 0}));
+  }
+
   const timeUpdateHandler = (e: SyntheticEvent<HTMLAudioElement, Event>) => {
-    const current = e.currentTarget.currentTime;
-    const duration = e.currentTarget.duration || 0;
+    const songInfo = {
+      currentTime: e.currentTarget.currentTime,
+      duration: e.currentTarget.duration || 0,
+    };
 
-    if (current === duration && isPlaying) {
+    if (songInfo.currentTime === songInfo.duration && isPlaying) {
       audioRef.current?.pause();
-      updatePlayState(false);
-
-      setSonginfo({
-        currentTime: 0,
-        duration,
-      });
-      return;
+      return setInitialState();
     }
 
-    setSonginfo({
-      currentTime: current,
-      duration,
-    });
+    setSonginfo(songInfo);
   };
 
   const dragHandler = (e: SyntheticEvent<HTMLInputElement, Event>) => {
@@ -64,21 +67,26 @@ export const Player: FC<PlayerProps> = ({
     }
   };
 
+  const getTrackBackground = () => {
+    return `linear-gradient(to right, ${currentSong.color[0]} 0%, ${currentSong.color[1]} 100%)`
+  }
+
   useEffect(() => {
-    if (!fisrtPlay) {
-      // updatePlayState(true);
-      audioRef.current?.play().catch(() => {
-      // updatePlayState(true);
-       return audioRef.current?.play()
-      }).finally(() => updatePlayState(true))
-    }
-  }, [currentSong]);
+    !fisrtPlay &&
+      audioRef.current
+        ?.play()
+        .catch(() => {
+          return audioRef.current?.play();
+        })
+        .finally(() => updatePlayState(true));
+  }, [currentSong, fisrtPlay, updatePlayState]);
 
   useEffect(() => {
     document.addEventListener("keydown", handleSpacePress, false);
     return () => {
       document.removeEventListener("keydown", handleSpacePress, false);
     };
+    // eslint-disable-next-line
   }, [isPlaying]);
 
   return (
@@ -88,7 +96,7 @@ export const Player: FC<PlayerProps> = ({
         <div
           className="track"
           style={{
-            background: `linear-gradient(to right, ${currentSong.color[1]} 0%, ${currentSong.color[0]} 100%)`,
+            background: getTrackBackground(),
           }}
         >
           <input
@@ -130,16 +138,13 @@ export const Player: FC<PlayerProps> = ({
           onClick={() => skipTrack(SkipDirection.FW)}
         />
       </div>
-      {/* <iframe allow="autoplay 'self'" style={{display:"none"}}></iframe> */}
       <audio
-        // autoPlay={true}
         onTimeUpdate={timeUpdateHandler}
         onLoadedMetadata={timeUpdateHandler}
         onPlay={() => fisrtPlay && setFirstPlay(false)}
         ref={audioRef}
         src={currentSong.audio}
       ></audio>
-      <button ref={fakeButonRef}  style={{ display: "none" }}></button>
     </div>
   );
 };
